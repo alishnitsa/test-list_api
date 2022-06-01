@@ -84,6 +84,18 @@ router.post('/tests', async (req, res) => {
   }
 })
 
+// Tests by theme id
+router.get('/tests', async (req, res) => {
+  try{
+    const data = await Test.find({ theme_id: req.query.theme })
+    res.json(data)
+  }
+  catch(error){
+    res.status(500).json({message: error.message})
+  }
+})
+
+// All tests
 router.get('/tests', async (req, res) => {
   try{
     const data = await Test.find();
@@ -148,6 +160,24 @@ router.post('/questions', async (req, res) => {
   }
   catch (error) {
     res.status(400).json({message: error.message})
+  }
+})
+
+router.get('/questions', async (req, res) => {
+  try {
+    const questions = await Question.find({ test_id: req.query.test }).lean({ virtuals: true })
+    const qIds = questions.map(elem => elem.id)
+    const answers = await Answer.find({ question_id: { $in: qIds } }).lean({ virtuals: true })
+
+    const data = questions.map(question => ({
+      ...question,
+      answers: answers.filter(answer => answer.question_id === question.id)
+    }))
+
+    res.json(data)
+  }
+  catch(error){
+    res.status(500).json({message: error.message})
   }
 })
 
