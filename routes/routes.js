@@ -60,8 +60,21 @@ router.patch('/themes/:id', async (req, res) => {
 router.delete('/themes/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const data = await Theme.findByIdAndDelete(id)
-    res.send(`Document with ${data.name} has been deleted..`)
+
+		const tests = await Test.find({ theme_id: id }).lean({ virtuals: true })
+		const tIds = tests.map(elem => elem.id)
+
+		const questions = await Question.find({ test_id: { $in: tIds } })
+		const qIds = questions.map(elem => elem.id)
+
+		const answers = await Answer.find({ question_id: { $in: qIds } })
+		const aIds = answers.map(elem => elem.id)
+
+    await Theme.findByIdAndDelete(id)
+		await Test.deleteMany({ _id: { $in: tIds } })
+		await Question.deleteMany({ _id: { $in: qIds } })
+		await Answer.deleteMany({ _id: { $in: aIds } })
+    res.send(`Documents has been deleted..`)
   }
   catch (error) {
     res.status(400).json({ message: error.message })
@@ -137,9 +150,18 @@ router.patch('/tests/:id', async (req, res) => {
 
 router.delete('/tests/:id', async (req, res) => {
   try {
-    const id = req.params.id;
-    const data = await Test.findByIdAndDelete(id)
-    res.send(`Document with ${data.name} has been deleted..`)
+		const id = req.params.id;
+
+		const questions = await Question.find({ test_id: id })
+		const qIds = questions.map(elem => elem.id)
+
+		const answers = await Answer.find({ question_id: { $in: qIds } })
+		const aIds = answers.map(elem => elem.id)
+
+		await Test.deleteMany({ _id: id })
+		await Question.deleteMany({ _id: { $in: qIds } })
+		await Answer.deleteMany({ _id: { $in: aIds } })
+    res.send(`Documents has been deleted..`)
   }
   catch (error) {
     res.status(400).json({ message: error.message })
@@ -223,8 +245,13 @@ router.patch('/questions/:id', async (req, res) => {
 router.delete('/questions/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const data = await Question.findByIdAndDelete(id)
-    res.send(`Document with ${data.title} has been deleted..`)
+
+		const answers = await Answer.find({ question_id: id })
+		const aIds = answers.map(elem => elem.id)
+
+		await Question.deleteMany({ _id: id })
+		await Answer.deleteMany({ _id: { $in: aIds } })
+    res.send(`Documents has been deleted..`)
   }
   catch (error) {
     res.status(400).json({ message: error.message })
