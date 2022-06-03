@@ -298,15 +298,24 @@ router.get('/answers/:id', async (req, res) => {
 router.patch('/answers/:id', async (req, res) => {
   try {
     const id = req.params.id;
+
     const updatedData = req.body;
     const options = { new: true };
-
-    console.log(id, updatedData)
 
     const result = await Answer.findByIdAndUpdate(
       id, updatedData, options
     )
 
+		const answer = await Answer.findById(id).lean({ virtuals: true })
+		if (answer) {
+			const updatedQuestionData = {}
+			if (updatedData.title) updatedQuestionData['title'] = updatedData.title
+			if (updatedData.comment) updatedQuestionData['comment'] = updatedData.comment
+			if (updatedQuestionData.title || updatedQuestionData.comment) {
+				const questionResult = await Question.findByIdAndUpdate(answer.question_id, updatedQuestionData, options)
+				if (questionResult) console.log('Изменение вопроса:', `${ answer.question_id } -> ${ updatedQuestionData.title ? `title: ${updatedQuestionData.title}` : '' }${ updatedQuestionData.comment && updatedQuestionData.comment ? `, ` : '' }${ updatedQuestionData.comment ? `comment: ${updatedQuestionData.comment}` : '' }`)
+			}
+		}
     res.status(200).json(result)
   }
   catch (error) {
