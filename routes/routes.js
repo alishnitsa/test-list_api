@@ -334,6 +334,35 @@ router.delete('/answers/:id', async (req, res) => {
   }
 })
 
+// Question and answers
+
+router.patch('/qa/:id', async (req, res) => {
+	// question { title, comment }
+	// answers [ { text, question_id, right }, ... ]
+  try {
+		const id = req.params.id;
+		const options = { new: true };
+
+		const deletedAnswers = await Answer.deleteMany({ question_id: id })
+
+		const newAnswers = req.body.answers.map(elem => ({ ...elem, question_id: id }))
+		const addedAnswers = await Answer.insertMany(newAnswers)
+		
+		const updatedQuestion = await Question.findOneAndUpdate(id, req.body.question, options)
+
+		const result = {
+			updatedQuestion,
+			deletedAnswers: deletedAnswers.deletedCount,
+			addedAnswers
+		}
+
+    res.status(200).json(result)
+  }
+  catch (error) {
+    res.status(400).json({ message: error.message })
+  }
+})
+
 // Data
 router.post('/post', async (req, res) => {
   const data = new Data({
